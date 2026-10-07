@@ -1,0 +1,19 @@
+{
+  "name": "@remo/mobile",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Remo for Android (Capacitor shell around the Remo web app with a native LAN plugin).",
+  "scripts": {
+    "sync": "cap sync android",
+    "open": "cap open android",
+    "apk:debug": "cap sync android && cd android && ./gradlew assembleDebug",
+    "apk:release": "cap sync android && cd android && ./gradlew assembleRelease bundleRelease"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.5.2",
+    "@capacitor/core": "^8.5.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.5.2"
+  }
+}

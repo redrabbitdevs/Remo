@@ -71,6 +71,16 @@ def main():
             save(rounded, os.path.join(res, f"mipmap-{name}", "ic_launcher_round.png"), px)
             fg = int(px * 108 / 48)
             save(square, os.path.join(res, f"mipmap-{name}", "ic_launcher_foreground.png"), fg)
+        # Splash screens: keep each template's size, dark background + centred icon.
+        for dirpath, _dirs, files in os.walk(res):
+            if "splash.png" in files:
+                path = os.path.join(dirpath, "splash.png")
+                w, h = Image.open(path).size
+                bg = Image.new("RGBA", (w, h), (0x0E, 0x16, 0x21, 255))
+                side = max(48, int(min(w, h) * 0.28))
+                ic = rounded.resize((side, side), Image.LANCZOS)
+                bg.paste(ic, ((w - side) // 2, (h - side) // 2), ic)
+                bg.convert("RGB").save(path)
     print("icons written", file=sys.stderr)
 
 

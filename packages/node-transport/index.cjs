@@ -26,6 +26,9 @@ const legacyAgent = new https.Agent({
   secureOptions: crypto.constants.SSL_OP_LEGACY_SERVER_CONNECT | (crypto.constants.SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION || 0),
 });
 
+/** Plain agent for LAN HTTP: never routed through an environment HTTP proxy. */
+const lanHttpAgent = new http.Agent({ keepAlive: false });
+
 /** Hosts a caller may reach. Cloud hosts are fixed; LAN targets must be private addresses. */
 const CLOUD_HOSTS = new Set([
   'proddit.ditdeneb.com',
@@ -47,6 +50,14 @@ function isPrivateHost(hostname) {
   return false;
 }
 
+/** Extra hosts the user explicitly allows (e.g. adapters reached through a VPN): REMO_EXTRA_HOSTS=a,b */
+const EXTRA_HOSTS = new Set(
+  (process.env.REMO_EXTRA_HOSTS || '')
+    .split(',')
+    .map((h) => h.trim().toLowerCase())
+    .filter(Boolean),
+);
+
 function isAllowedTarget(url) {
   let u;
   try {
@@ -56,6 +67,7 @@ function isAllowedTarget(url) {
   }
   if (!['http:', 'https:'].includes(u.protocol)) return false;
   if (CLOUD_HOSTS.has(u.hostname)) return u.protocol === 'https:';
+  if (EXTRA_HOSTS.has(u.hostname.toLowerCase())) return true;
   return isPrivateHost(u.hostname);
 }
 
@@ -82,7 +94,7 @@ function request(req, opts = {}) {
       {
         method: req.method || 'GET',
         headers,
-        agent: isHttps && (req.insecureTls || !CLOUD_HOSTS.has(u.hostname)) ? legacyAgent : undefined,
+        agent: isHttps ? (req.insecureTls || !CLOUD_HOSTS.has(u.hostname) ? legacyAgent : undefined) : lanHttpAgent,
         timeout: req.timeoutMs || 8000,
       },
       (res) => {
