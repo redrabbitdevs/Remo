@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Daikin adapters on the home network only speak plain HTTP (BRP069/BRP072A) or HTTPS with a
+  self-signed certificate (BRP072C). LAN addresses can't be listed here, so cleartext is permitted;
+  the DaikinNet plugin only ever connects to private LAN addresses or the Daikin cloud (HTTPS).
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">ditdeneb.com</domain>
+        <domain includeSubdomains="true">dspsph.com</domain>
+        <domain includeSubdomains="true">daikinonlinecontroller.com</domain>
+    </domain-config>
+</network-security-config>

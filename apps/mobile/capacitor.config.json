@@ -1,0 +1,12 @@
+{
+  "appId": "io.github.redrabbitdevs.remo",
+  "appName": "Remo",
+  "webDir": "../web/dist",
+  "android": {
+    "allowMixedContent": true,
+    "backgroundColor": "#0e1621"
+  },
+  "server": {
+    "androidScheme": "https"
+  }
+}

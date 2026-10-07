@@ -1,0 +1,82 @@
+{
+  "name": "@remo/desktop",
+  "productName": "Remo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Remo for Windows \u2013 control Daikin Wi-Fi air conditioners and air purifiers.",
+  "author": "Remo contributors",
+  "license": "MIT",
+  "main": "main.cjs",
+  "scripts": {
+    "prepare-app": "node scripts/prepare.cjs",
+    "start": "npm run prepare-app && electron .",
+    "dist:win": "npm run prepare-app && electron-builder --win --publish never",
+    "dist:dir": "npm run prepare-app && electron-builder --dir --publish never",
+    "test": "node --test scripts/main.test.cjs",
+    "e2e": "npm run prepare-app && playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.1",
+    "electron": "44.6.0",
+    "electron-builder": "^26.15.3"
+  },
+  "build": {
+    "appId": "io.github.redrabbitdevs.remo",
+    "productName": "Remo",
+    "copyright": "Remo contributors \u2013 not affiliated with Daikin",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.cjs",
+      "preload.cjs",
+      "lib/**/*",
+      "web/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Remo",
+      "artifactName": "Remo-${version}-setup-${arch}.${ext}"
+    },
+    "portable": {
+      "artifactName": "Remo-${version}-portable.${ext}"
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "category": "Utility"
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "category": "public.app-category.utilities"
+    },
+    "electronVersion": "44.6.0"
+  }
+}
