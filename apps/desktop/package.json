@@ -16,7 +16,7 @@
     "e2e": "npm run prepare-app && playwright test"
   },
   "devDependencies": {
-    "@playwright/test": "^1.56.1",
+    "@playwright/test": "^1.63.0",
     "electron": "44.6.0",
     "electron-builder": "^26.15.3"
   },
