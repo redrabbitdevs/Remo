@@ -96,6 +96,8 @@ function request(req, opts = {}) {
         headers,
         agent: isHttps ? (req.insecureTls || !CLOUD_HOSTS.has(u.hostname) ? legacyAgent : undefined) : lanHttpAgent,
         timeout: req.timeoutMs || 8000,
+        // Some adapter firmware sends slightly malformed HTTP headers that Node's strict parser rejects.
+        insecureHTTPParser: true,
       },
       (res) => {
         const chunks = [];
@@ -152,16 +154,48 @@ function parseKV(body) {
   return out;
 }
 
+/** Daikin adapters answer discovery to UDP port 30000, not to the sender's port (as the official app expects). */
+const REPLY_PORT = 30000;
+
+function openSocket(port) {
+  return new Promise((resolve, reject) => {
+    const sock = dgram.createSocket({ type: 'udp4', reuseAddr: true });
+    const onError = (e) => {
+      sock.close();
+      reject(e);
+    };
+    sock.once('error', onError);
+    sock.bind(port, () => {
+      sock.off('error', onError);
+      resolve(sock);
+    });
+  });
+}
+
 /**
- * UDP discovery.
+ * UDP discovery: broadcast "DAIKIN_UDP/common/basic_info" to port 30050 on every interface and
+ * collect the answers, which adapters send to port 30000.
  * @param {number} [timeoutMs]
+ * @param {string[]} [extraTargets] unicast addresses to probe as well (e.g. a typed-in IP)
  * @returns {Promise<{ip:string, info:Record<string,string>}[]>}
  */
-function discover(timeoutMs = 3000) {
+async function discover(timeoutMs = 3000, extraTargets = []) {
+  let sock;
+  try {
+    sock = await openSocket(REPLY_PORT);
+  } catch {
+    // Port 30000 busy (e.g. the official app or another instance): replies to it are lost,
+    // but adapters that answer the sender's port will still be found.
+    sock = await openSocket(0);
+  }
   return new Promise((resolve) => {
     const found = new Map();
-    const sock = dgram.createSocket({ type: 'udp4', reuseAddr: true });
+    let finished = false;
+    let timer;
     const done = () => {
+      if (finished) return;
+      finished = true;
+      clearInterval(timer);
       try {
         sock.close();
       } catch {
@@ -175,17 +209,19 @@ function discover(timeoutMs = 3000) {
       if (info.ret !== 'OK' && !info.mac) return;
       found.set(info.mac || rinfo.address, { ip: rinfo.address, info });
     });
-    sock.bind(0, () => {
-      sock.setBroadcast(true);
-      const payload = Buffer.from(DISCOVERY_MSG);
-      const send = () => {
-        for (const addr of broadcastAddresses()) sock.send(payload, DISCOVERY_PORT, addr, () => {});
-      };
-      send();
-      setTimeout(send, Math.min(800, timeoutMs / 3));
-      setTimeout(done, timeoutMs);
-    });
+    sock.setBroadcast(true);
+    const payload = Buffer.from(DISCOVERY_MSG);
+    const targets = [...broadcastAddresses(), ...extraTargets];
+    let sent = 0;
+    const send = () => {
+      for (const addr of targets) sock.send(payload, DISCOVERY_PORT, addr, () => {});
+      if (++sent >= 5) clearInterval(timer);
+    };
+    // Repeat the probe a few times: UDP broadcasts are easily dropped on Wi-Fi.
+    timer = setInterval(send, 250);
+    send();
+    setTimeout(done, timeoutMs);
   });
 }
 
-module.exports = { request, discover, isAllowedTarget, parseKV, broadcastAddresses, CLOUD_HOSTS };
+module.exports = { request, discover, REPLY_PORT, isAllowedTarget, parseKV, broadcastAddresses, CLOUD_HOSTS };

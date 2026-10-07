@@ -180,24 +180,40 @@ export class DaikinUnit {
   }
 }
 
+/** Accept "http://192.168.1.5/", "192.168.1.5:80/common", " 192.168.1.5 " … and return "host[:port]". */
+export function normalizeHost(input: string): string {
+  let h = input.trim();
+  h = h.replace(/^[a-z]+:\/\//i, '');
+  h = h.split(/[/?#]/)[0] ?? '';
+  return h.replace(/:(80|443)$/, '');
+}
+
 /**
  * Work out which protocol an adapter speaks.
- * Order: plain HTTP legacy → HTTPS legacy (BRP072C) → dsiot JSON.
+ * Order: plain HTTP legacy → HTTPS legacy (BRP072C) → dsiot JSON (HTTP, then HTTPS).
+ * When nothing answers, the error lists what each attempt returned.
  */
 export async function detectProtocol(
   transport: Transport,
-  host: string,
+  rawHost: string,
   uuid: string,
 ): Promise<{ protocol: Protocol; basic?: Record<string, string>; needsKey?: boolean; kind: 'aircon' | 'cleaner' }> {
+  const host = normalizeHost(rawHost);
+  if (!host) throw new TransportError('Enter the adapter IP address', 'protocol');
   const kindOf = (b: Record<string, string>) => (b.type === 'cj' || b.type === 'cleaner' || b.type?.startsWith('cj') ? 'cleaner' : 'aircon');
+  const attempts: string[] = [];
+  const note = (label: string, detail: string) => attempts.push(`${label}: ${detail}`);
+  const why = (e: unknown) => (e as Error)?.message || String(e);
+
   try {
-    const res = await transport.request({ method: 'GET', url: `http://${host}/common/basic_info`, timeoutMs: 4000 });
+    const res = await transport.request({ method: 'GET', url: `http://${host}/common/basic_info`, timeoutMs: 5000 });
     if (res.status === 200 && res.body.includes('ret=OK')) {
       const b = parseKV(res.body);
       return { protocol: 'legacy', basic: b, kind: kindOf(b) };
     }
-  } catch {
-    /* try next */
+    note('HTTP', `status ${res.status}${res.body ? ` "${res.body.slice(0, 40)}"` : ''}`);
+  } catch (e) {
+    note('HTTP', why(e));
   }
   try {
     const res = await transport.request({
@@ -205,25 +221,28 @@ export async function detectProtocol(
       url: `https://${host}/common/basic_info`,
       headers: { 'X-Daikin-uuid': uuid.replace(/-/g, '') },
       insecureTls: true,
-      timeoutMs: 5000,
+      timeoutMs: 6000,
     });
     if (res.status === 200 && res.body.includes('ret=OK')) {
       const b = parseKV(res.body);
       return { protocol: 'legacy-https', basic: b, kind: kindOf(b) };
     }
     if (res.status === 403) return { protocol: 'legacy-https', needsKey: true, kind: 'aircon' };
-  } catch {
-    /* try next */
+    note('HTTPS', `status ${res.status}`);
+  } catch (e) {
+    note('HTTPS', why(e));
   }
-  const d = new DsiotClient(transport, { host });
-  try {
-    const resp = await d.readAll();
-    if (resp.responses?.length) {
-      const info = DsiotClient.info(resp);
-      return { protocol: 'dsiot', basic: { name: info.name ?? '', mac: info.mac ?? '', ver: info.firmware ?? '' }, kind: 'aircon' };
+  for (const https of [false, true]) {
+    try {
+      const resp = await new DsiotClient(transport, { host, https, uuid, timeoutMs: 6000 }).readAll();
+      if (resp.responses?.length) {
+        const info = DsiotClient.info(resp);
+        return { protocol: 'dsiot', basic: { name: info.name ?? '', mac: info.mac ?? '', ver: info.firmware ?? '' }, kind: 'aircon' };
+      }
+      note(`JSON ${https ? 'HTTPS' : 'HTTP'}`, 'empty answer');
+    } catch (e) {
+      note(`JSON ${https ? 'HTTPS' : 'HTTP'}`, why(e));
     }
-  } catch {
-    /* fall through */
   }
-  throw new TransportError(`No Daikin adapter answered at ${host}`, 'network');
+  throw new TransportError(`No Daikin adapter answered at ${host}. ${attempts.join(' · ')}`, 'network');
 }

@@ -58,6 +58,8 @@ import javax.net.ssl.X509TrustManager;
 public class DaikinNetPlugin extends Plugin {
 
     private static final int DISCOVERY_PORT = 30050;
+    /** Adapters answer discovery to UDP port 30000, not to the sender's port (as the official app expects). */
+    private static final int REPLY_PORT = 30000;
     private static final String DISCOVERY_MSG = "DAIKIN_UDP/common/basic_info";
     private static final int MAX_BODY = 2 * 1024 * 1024;
     private static final Set<String> CLOUD_HOSTS = new HashSet<>(Arrays.asList(
@@ -151,7 +153,7 @@ public class DaikinNetPlugin extends Plugin {
             WifiManager wifi = (WifiManager) getContext().getApplicationContext().getSystemService(Context.WIFI_SERVICE);
             WifiManager.MulticastLock lock = null;
             Map<String, JSObject> found = new LinkedHashMap<>();
-            try (DatagramSocket socket = new DatagramSocket()) {
+            try (DatagramSocket socket = openDiscoverySocket()) {
                 if (wifi != null) {
                     lock = wifi.createMulticastLock("remo-discovery");
                     lock.setReferenceCounted(false);
@@ -163,7 +165,11 @@ public class DaikinNetPlugin extends Plugin {
                 targets.add(InetAddress.getByName("255.255.255.255"));
                 InetAddress subnet = wifiBroadcast(wifi);
                 if (subnet != null) targets.add(subnet);
-                for (InetAddress t : targets) socket.send(new DatagramPacket(msg, msg.length, t, DISCOVERY_PORT));
+                // Repeat the probe: UDP broadcasts are easily dropped on Wi-Fi.
+                for (int round = 0; round < 5; round++) {
+                    for (InetAddress t : targets) socket.send(new DatagramPacket(msg, msg.length, t, DISCOVERY_PORT));
+                    Thread.sleep(200);
+                }
                 long end = System.currentTimeMillis() + timeout;
                 byte[] buf = new byte[2048];
                 while (System.currentTimeMillis() < end) {
@@ -198,6 +204,18 @@ public class DaikinNetPlugin extends Plugin {
                 if (lock != null && lock.isHeld()) lock.release();
             }
         });
+    }
+
+    private static DatagramSocket openDiscoverySocket() throws IOException {
+        try {
+            DatagramSocket s = new DatagramSocket(null);
+            s.setReuseAddress(true);
+            s.bind(new java.net.InetSocketAddress(REPLY_PORT));
+            return s;
+        } catch (IOException e) {
+            // Port busy (e.g. the official app is running): fall back to any port.
+            return new DatagramSocket();
+        }
     }
 
     private static InetAddress wifiBroadcast(WifiManager wifi) {

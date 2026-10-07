@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { LegacyClient, decodeDaikinString, detectProtocol, type DiscoveredAdapter, type UnitConfig } from '@remo/core';
+import { LegacyClient, decodeDaikinString, detectProtocol, normalizeHost, type DiscoveredAdapter, type UnitConfig } from '@remo/core';
 import { Badge, Button, Card, Field, Page, Row, Spinner } from '../components/ui';
 import { navigate } from '../lib/router';
 import { addUnit, errorText, getState, getTransport, toast, updateSettings, useApp } from '../lib/store';
@@ -14,6 +14,7 @@ export function AddUnit() {
   const [key, setKey] = useState('');
   const [needsKey, setNeedsKey] = useState<string>();
   const [busy, setBusy] = useState(false);
+  const [addError, setAddError] = useState<string>();
 
   const scan = async () => {
     setScanning(true);
@@ -34,8 +35,10 @@ export function AddUnit() {
     void scan();
   }, []);
 
-  const add = async (ip: string, adapterKey?: string) => {
+  const add = async (rawIp: string, adapterKey?: string) => {
+    const ip = normalizeHost(rawIp);
     setBusy(true);
+    setAddError(undefined);
     try {
       const t = getTransport();
       const uuid = getState().uuid;
@@ -70,7 +73,8 @@ export function AddUnit() {
       toast(`${cfg.name} added`, 'success');
       navigate(`/unit/${cfg.id}`);
     } catch (e) {
-      toast(errorText(e), 'error');
+      setAddError(errorText(e));
+      toast(`Couldn't add ${ip}`, 'error');
     } finally {
       setBusy(false);
     }
@@ -107,6 +111,12 @@ export function AddUnit() {
         ) : (
           <p className="muted">{scanError ?? 'No adapters answered. Make sure you are on the same Wi-Fi, or add one by IP address below.'}</p>
         )}
+        {found && !found.length && !scanning && platform === 'desktop' && (
+          <p className="muted small">
+            On Windows, discovery needs Remo to be allowed through Windows Defender Firewall on private networks (Windows asks the first time you scan). If you
+            dismissed that prompt, allow “Remo” under Windows Security → Firewall &amp; network protection → Allow an app through firewall.
+          </p>
+        )}
       </Card>
 
       <Card title="Add by IP address">
@@ -120,6 +130,11 @@ export function AddUnit() {
             autoFocus
             hint="This adapter (BRP072C) needs the 13-digit key printed on its sticker."
           />
+        )}
+        {addError && (
+          <div className="banner banner-bad" role="alert">
+            {addError}
+          </div>
         )}
         <Button kind="primary" icon="plus" disabled={!host || (needsKey === host && key.length !== 13)} busy={busy} onClick={() => add(host.trim(), needsKey === host ? key : undefined)}>
           Connect
