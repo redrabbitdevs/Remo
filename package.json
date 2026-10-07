@@ -1,0 +1,27 @@
+{
+  "name": "remo",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Remo – a modern, cross-platform controller for Daikin Wi-Fi air conditioners and air purifiers (web, Windows, Android).",
+  "license": "MIT",
+  "workspaces": [
+    "packages/*",
+    "apps/web",
+    "apps/bridge",
+    "apps/desktop",
+    "apps/mobile"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "npm run test -w @remo/core",
+    "typecheck": "npm run typecheck -w @remo/core && npm run typecheck -w @remo/web",
+    "build:web": "npm run build -w @remo/web",
+    "dev": "npm run dev -w @remo/web",
+    "bridge": "npm run start -w @remo/bridge",
+    "desktop": "npm run build:web && npm run start -w @remo/desktop",
+    "dist:win": "npm run build:web && npm run dist:win -w @remo/desktop",
+    "android:sync": "npm run build:web && npm run sync -w @remo/mobile"
+  }
+}

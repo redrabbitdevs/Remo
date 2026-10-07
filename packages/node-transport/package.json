@@ -1,0 +1,10 @@
+{
+  "name": "@remo/node-transport",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Node.js LAN transport for Daikin adapters (HTTP, legacy HTTPS, UDP discovery). Used by the bridge and the Windows app.",
+  "main": "index.cjs",
+  "scripts": {
+    "test": "node --test test.cjs"
+  }
+}
