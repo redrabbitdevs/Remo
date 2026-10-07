@@ -34,7 +34,7 @@ firmware ≥ 2.8 (JSON API).
 
 Download the latest build from **Releases** (tag `v*`) or from the artifacts of the **CI** workflow:
 
-* **Windows** – `Remo-<version>-win-x64-nsis.exe` (installer) or `Remo-<version>-portable.exe`.
+* **Windows** – `Remo-<version>-setup-x64.exe` (installer; `-arm64` for ARM PCs) or `Remo-<version>-portable.exe`.
 * **Android** – `Remo.apk` (sideload) or `Remo.aab` (Play Store).
 * **Web** – open the GitHub Pages site for the demo, or run the bridge at home (below).
 
