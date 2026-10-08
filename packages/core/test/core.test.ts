@@ -15,6 +15,7 @@ import {
   parseKV,
   summarize,
   detectProtocol,
+  normalizeHost,
   type HttpRequest,
   type Transport,
 } from '../src';
@@ -195,5 +196,26 @@ describe('device façade', () => {
   it('discovers simulated units', async () => {
     const found = await sim().discover();
     expect(found.map((f) => f.ip)).toContain('demo-purifier');
+  });
+});
+
+describe('add by IP', () => {
+  it('normalises typed addresses', () => {
+    expect(normalizeHost(' http://192.168.1.5/ ')).toBe('192.168.1.5');
+    expect(normalizeHost('https://192.168.1.5:443/common/basic_info')).toBe('192.168.1.5');
+    expect(normalizeHost('192.168.1.5:8080')).toBe('192.168.1.5:8080');
+  });
+
+  it('reports every attempt when nothing answers', async () => {
+    const t: Transport = { kind: 'x', request: async () => { throw new Error('connect ECONNREFUSED'); } };
+    await expect(detectProtocol(t, '10.0.0.9', 'u')).rejects.toThrow(/HTTP: connect ECONNREFUSED.*HTTPS: .*JSON HTTP: .*JSON HTTPS/);
+  });
+
+  it('detects a BRP072C adapter that needs its key', async () => {
+    const t: Transport = {
+      kind: 'x',
+      request: async (r) => (r.url.startsWith('https') ? { status: 403, body: '' } : { status: 404, body: '' }),
+    };
+    expect(await detectProtocol(t, '10.0.0.9', 'u')).toMatchObject({ protocol: 'legacy-https', needsKey: true });
   });
 });
