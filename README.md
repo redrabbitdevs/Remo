@@ -89,7 +89,7 @@ docs/                    Analysis, feature matrix, platform guides
 * **CI** (every push/PR): unit tests, type check, web build, Playwright e2e, Electron e2e on
   Windows, Windows installer + portable build, Android APK/AAB build + lint, Docker image smoke test.
 * **Pages** (main): deploys the web app to GitHub Pages.
-* **Release** (`v*` tags): builds everything and attaches the binaries to a GitHub release.
+* **Release** (`v*` tag push, or Actions → Release → Run workflow with a version): builds everything and attaches the binaries to a GitHub release.
 
 Optional secrets: `CSC_LINK`/`CSC_KEY_PASSWORD` (Windows code signing),
 `ANDROID_KEYSTORE_BASE64`/`ANDROID_KEYSTORE_PASSWORD`/`ANDROID_KEY_ALIAS`/`ANDROID_KEY_PASSWORD`
