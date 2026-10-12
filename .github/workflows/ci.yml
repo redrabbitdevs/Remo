@@ -66,6 +66,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build:web
+      - name: LAN transport tests under Electron (BoringSSL)
+        run: npm run test:transport -w @remo/desktop
       - name: Electron end-to-end test
         run: npm run e2e -w @remo/desktop
       - name: Build installer (NSIS x64/arm64) and portable exe

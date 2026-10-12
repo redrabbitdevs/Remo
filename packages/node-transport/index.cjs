@@ -8,6 +8,7 @@
  */
 const http = require('node:http');
 const https = require('node:https');
+const tls = require('node:tls');
 const dgram = require('node:dgram');
 const os = require('node:os');
 const crypto = require('node:crypto');
@@ -17,13 +18,33 @@ const DISCOVERY_PORT = 30050;
 const MAX_BODY = 2 * 1024 * 1024;
 
 /** Agent for adapters: self-signed certs, legacy renegotiation, low security level ciphers. */
+/**
+ * Cipher list for adapters. OpenSSL (Node, bridge) needs "@SECLEVEL=0" to accept the old SHA-1
+ * certificates/handshakes of BRP072C adapters, but BoringSSL (Electron, i.e. the Windows app)
+ * rejects that syntax with "INVALID_COMMAND". Use the first list this TLS library accepts.
+ */
+function pickLegacyCiphers() {
+  for (const ciphers of ['DEFAULT:@SECLEVEL=0', 'ALL', 'DEFAULT']) {
+    try {
+      tls.createSecureContext({ ciphers });
+      return ciphers;
+    } catch {
+      /* not supported by this TLS library */
+    }
+  }
+  return undefined;
+}
+
+const LEGACY_CIPHERS = pickLegacyCiphers();
+
+/** Agent for adapters: self-signed certs, old TLS versions, legacy renegotiation, weak ciphers. */
 const legacyAgent = new https.Agent({
   rejectUnauthorized: false,
   keepAlive: false,
-  ciphers: 'DEFAULT:@SECLEVEL=0',
+  ciphers: LEGACY_CIPHERS,
   minVersion: 'TLSv1',
   // eslint-disable-next-line no-bitwise
-  secureOptions: crypto.constants.SSL_OP_LEGACY_SERVER_CONNECT | (crypto.constants.SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION || 0),
+  secureOptions: (crypto.constants.SSL_OP_LEGACY_SERVER_CONNECT || 0) | (crypto.constants.SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION || 0),
 });
 
 /** Plain agent for LAN HTTP: never routed through an environment HTTP proxy. */
@@ -224,4 +245,4 @@ async function discover(timeoutMs = 3000, extraTargets = []) {
   });
 }
 
-module.exports = { request, discover, REPLY_PORT, isAllowedTarget, parseKV, broadcastAddresses, CLOUD_HOSTS };
+module.exports = { request, discover, REPLY_PORT, LEGACY_CIPHERS, isAllowedTarget, parseKV, broadcastAddresses, CLOUD_HOSTS };

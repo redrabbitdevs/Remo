@@ -13,7 +13,8 @@
     "dist:win": "npm run prepare-app && electron-builder --win --publish never",
     "dist:dir": "npm run prepare-app && electron-builder --dir --publish never",
     "test": "node --test scripts/main.test.cjs",
-    "e2e": "npm run prepare-app && playwright test"
+    "e2e": "npm run prepare-app && playwright test",
+    "test:transport": "node scripts/transport-under-electron.cjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.56.1",
