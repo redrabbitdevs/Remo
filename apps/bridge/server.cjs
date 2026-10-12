@@ -25,6 +25,13 @@ const TOKEN = process.env.REMO_TOKEN || '';
 const ORIGINS = (process.env.REMO_ORIGINS || '').split(',').map((s) => s.trim()).filter(Boolean);
 const WEB_ROOT = path.resolve(process.env.WEB_ROOT || path.join(__dirname, '..', 'web', 'dist'));
 const MAX_REQUEST = 256 * 1024;
+const VERSION = (() => {
+  try {
+    return require('./package.json').version;
+  } catch {
+    return 'unknown';
+  }
+})();
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -114,7 +121,7 @@ async function handle(req, res) {
   }
   const url = new URL(req.url, 'http://x');
   if (url.pathname === '/api/health') {
-    json(res, 200, { ok: true, name: 'remo-bridge', version: '1.0.0', auth: Boolean(TOKEN) });
+    json(res, 200, { ok: true, name: 'remo-bridge', version: VERSION, auth: Boolean(TOKEN) });
     return;
   }
   if (url.pathname.startsWith('/api/')) {

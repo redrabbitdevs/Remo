@@ -1,7 +1,7 @@
 {
   "name": "@remo/desktop",
   "productName": "Remo",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "Remo for Windows \u2013 control Daikin Wi-Fi air conditioners and air purifiers.",
   "author": "Remo contributors",
