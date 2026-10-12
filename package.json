@@ -1,7 +1,7 @@
 {
   "name": "remo",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Remo – a modern, cross-platform controller for Daikin Wi-Fi air conditioners and air purifiers (web, Windows, Android).",
   "license": "MIT",
   "workspaces": [

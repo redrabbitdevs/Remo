@@ -1,7 +1,7 @@
 {
   "name": "@remo/desktop",
   "productName": "Remo",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "Remo for Windows \u2013 control Daikin Wi-Fi air conditioners and air purifiers.",
   "author": "Remo contributors",
@@ -13,7 +13,8 @@
     "dist:win": "npm run prepare-app && electron-builder --win --publish never",
     "dist:dir": "npm run prepare-app && electron-builder --dir --publish never",
     "test": "node --test scripts/main.test.cjs",
-    "e2e": "npm run prepare-app && playwright test"
+    "e2e": "npm run prepare-app && playwright test",
+    "test:transport": "node scripts/transport-under-electron.cjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.56.1",

@@ -9,7 +9,7 @@ FROM node:22-alpine
 WORKDIR /app
 ENV NODE_ENV=production PORT=8732 WEB_ROOT=/app/web
 COPY --from=build /src/packages/node-transport /app/node_modules/@remo/node-transport
-COPY --from=build /src/apps/bridge/server.cjs /app/server.cjs
+COPY --from=build /src/apps/bridge/server.cjs /src/apps/bridge/package.json /app/
 COPY --from=build /src/apps/web/dist /app/web
 USER node
 EXPOSE 8732

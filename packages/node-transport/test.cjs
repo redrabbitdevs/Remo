@@ -59,3 +59,24 @@ test('lenient parser accepts malformed adapter headers', async () => {
     srv.close();
   }
 });
+
+test('HTTPS to a self-signed adapter works (OpenSSL and BoringSSL/Electron)', async () => {
+  const https = require('node:https');
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const srv = https.createServer(
+    { key: fs.readFileSync(path.join(__dirname, 'fixtures', 'key.pem')), cert: fs.readFileSync(path.join(__dirname, 'fixtures', 'cert.pem')) },
+    (req, res) => res.end(`ret=OK,uuid=${req.headers['x-daikin-uuid']}`),
+  );
+  await new Promise((r) => srv.listen(0, '127.0.0.1', r));
+  try {
+    const res = await request(
+      { method: 'GET', url: `https://127.0.0.1:${srv.address().port}/common/basic_info`, headers: { 'X-Daikin-uuid': 'abc' }, insecureTls: true },
+      { allowAnyHost: true },
+    );
+    assert.equal(res.status, 200);
+    assert.equal(res.body, 'ret=OK,uuid=abc');
+  } finally {
+    srv.close();
+  }
+});
