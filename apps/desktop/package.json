@@ -17,8 +17,8 @@
     "test:transport": "node scripts/transport-under-electron.cjs"
   },
   "devDependencies": {
-    "@playwright/test": "^1.56.1",
-    "electron": "44.6.0",
+    "@playwright/test": "^1.64.0",
+    "electron": "44.7.0",
     "electron-builder": "^26.15.3"
   },
   "build": {
