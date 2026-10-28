@@ -10,10 +10,10 @@
     "apk:release": "cap sync android && cd android && ./gradlew assembleRelease bundleRelease"
   },
   "dependencies": {
-    "@capacitor/android": "^8.5.2",
-    "@capacitor/core": "^8.5.2"
+    "@capacitor/android": "^8.5.3",
+    "@capacitor/core": "^8.5.3"
   },
   "devDependencies": {
-    "@capacitor/cli": "^8.5.2"
+    "@capacitor/cli": "^8.5.3"
   }
 }
